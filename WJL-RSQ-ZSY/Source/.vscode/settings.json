@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "ADXL345.C": "cpp",
+        "IIC.C": "cpp",
+        "all_head.h": "c"
+    }
+}

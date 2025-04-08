@@ -1,0 +1,5 @@
+---- gbFlag2ms Matches (4 in 3 files) ----
+Bsp.h (source\bsp):EXT     U8                      gbFlag2ms;
+Main.c (source\user):		if(gbFlag2ms)
+Main.c (source\user):			gbFlag2ms =0;
+Sh30f9071_it.c (source\user):	gbFlag2ms =1;
