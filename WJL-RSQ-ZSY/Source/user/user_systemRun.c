@@ -298,6 +298,8 @@ void systemSignalInput(void)
 	// 温控开关检测
 #if (DIS_VALVE_ERR)
 	GetSystemRunData()->WkSw=0;
+#else
+	GetSystemRunData()->WkSw = GetInportsSta()->bOverTmpChk;
 #endif
 }
 //条形码重新保存

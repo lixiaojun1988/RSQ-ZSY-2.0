@@ -82,7 +82,7 @@ void FsmStableDoingHandler(void) // 10MS
 	if (GetSystemRunData()->u16FanSpeed < GetDCFanData()->u16FanSpdErr)
 		fsmVar_t.var3 = 0;
 
-	if (++fsmVar_t.var3 >= 50)
+	if (++fsmVar_t.var3 >= 500)
 	{
 		GetSystemRunData()->u8ErrorCode = EN_ERR_E8;
 		SetFsmState(FSM_STATE_ENDCLEAN);

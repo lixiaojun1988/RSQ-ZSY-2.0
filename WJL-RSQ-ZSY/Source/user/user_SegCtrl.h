@@ -1,10 +1,10 @@
 #ifndef	USER_SEGCTRL_H
 #define	USER_SEGCTRL_H
 
-#define SLOW_SEG_EN 1
+#define SLOW_SEG_EN 0
 
 #define SLOW_SEG_TMP    5//换挡时的温差（0.1℃）
-#define SLOW_SEG_CNT    500//换挡是超过温差的持续时间（0.01s）
+#define SLOW_SEG_CNT    50//换挡是超过温差的持续时间（0.1s）
 
 #define SEG_SWITCH_BLF_MIN  30//换挡时，比例阀最小高度
 
@@ -28,12 +28,14 @@ typedef struct
 	uint8_t	u8ValveStay_100ms;
 	uint8_t	u8ChgCnt;
 	uint8_t	u8Switching_100ms;
+	uint8_t BrustStableUpCnt;
+	uint8_t BrustStableDownCnt;
 }ST_SEGCTRL_T;
 extern	void	SetManualSeg(uint8_t	_u8set);
 extern	void	ClrSubChgCnt(void);
 extern	void	SegCtrlInit(void);
 extern	void	SegCtrlProcess(void);
-extern	void	QuickSwitchSeg(void);
+extern	void	SwitchSeg(void);
 extern	const	ST_SEGCTRL_T* GetSegCtrl(void);
 extern uint16_t	GetBlfIFromSeg(uint8_t	_u8seg);
 extern	void SegCtrl_Timer(void);

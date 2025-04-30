@@ -292,7 +292,7 @@ void DCFanProcess(void)
 	//比例阀小开度下最大转速限制
 	stFanData.u16FanSpdErrMin = (uint16_t)GetFlashDataSector0()->debugData.u8Lc + getAdapData()->Lc_add;
 	_u16temp = GETMIN(_u16temp, 99);// 转速的最大限制为99
-	stFanData.u16FanSpdErrMin *= 60;
+	stFanData.u16FanSpdErrMin = _u16temp * 60;
 
 	//最大开度下，加风比例
 	stFanData.u8FanMaxMux = GetWorkCon()->stFanErrData.u8FanMaxMux;

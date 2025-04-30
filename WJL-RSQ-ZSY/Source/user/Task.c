@@ -100,7 +100,7 @@ void task(void)
 
 void softInit(void)
 {
-	Drv_InOutput_Init();
+	  Drv_InOutput_Init();
     user_temper_init();
     usartInit();
     Comm_Init();

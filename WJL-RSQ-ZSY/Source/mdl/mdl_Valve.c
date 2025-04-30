@@ -78,7 +78,7 @@ uint8_t ValveCheckFunction(void)
         }
 
         IO_Temp = GetValveOpenSta();
-        while ((0 == IO_Temp) && (0 < _u8temp))
+        while (0 < _u8temp)
         {
             _u8temp--;
             IO_Temp = GetValveShortSta();
@@ -87,7 +87,6 @@ uint8_t ValveCheckFunction(void)
                 _u8Short = 1;
                 break;
             }
-            IO_Temp = GetValveOpenSta();
         }
         for (_u8i = 0; VALVE_NUM_MAX > _u8i; _u8i++)
         {

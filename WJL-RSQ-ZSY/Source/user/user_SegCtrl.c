@@ -2,11 +2,7 @@
 
 ST_SEGCTRL_T stSegCtrl;
 static void RefreshSwitchPnt(void);
-static void GetSegSet(void);
-/**********************************************
- *
- *
- **********************************************/
+
 const ST_SEGCTRL_T *GetSegCtrl(void)
 {
 	return &stSegCtrl;
@@ -93,21 +89,57 @@ static void RefreshSwitchPnt(void)
 		_u8segMax -= 1;
 	}
 }
-static void GetSegSet(void)
+
+void SwitchSegBrustStable(void)
 {
+
+	// 检测是否需要向上切换
+	if ((stSegCtrl.u8Set == stSegCtrl.u8Cur) &&
+		(stSegCtrl.u8Set < GetWorkCon()->u8MaxSeg) &&
+		(GetSystemRunData()->u16SetBlfI >= GetSystemRunData()->u16BlfIRun_Max - 20) &&
+		(GetSystemRunData()->TmpSet > GetSystemRunData()->TmpOut + 10) &&
+		(FSM_STATE_STABLE == GetFsmState()))
+	{
+		if (++stSegCtrl.BrustStableUpCnt >= 100)
+		{
+			stSegCtrl.BrustStableUpCnt = 0;
+			stSegCtrl.u8Set++;
+		}
+	}
+	else
+		stSegCtrl.BrustStableUpCnt = 0;
+	// 检测是否需要向下切换
+	if ((stSegCtrl.u8Set == stSegCtrl.u8Cur) &&
+		(stSegCtrl.u8Set > 0) &&
+		(GetSystemRunData()->u16SetBlfI <= GetSystemRunData()->u16BlfIRun_Min + 20) &&
+		(GetSystemRunData()->TmpOut > GetSystemRunData()->TmpSet + 10) &&
+		(FSM_STATE_STABLE == GetFsmState()))
+	{
+		if (++stSegCtrl.BrustStableDownCnt >= 100)
+		{
+			stSegCtrl.BrustStableDownCnt = 0;
+			stSegCtrl.u8Set--;
+		}
+	}
+	else
+		stSegCtrl.BrustStableDownCnt = 0;
+}
+void SwitchSeg(void)
+{
+
 	uint8_t _u8temp;
-	uint16_t _u16SetLoad, _u16temp;
+	uint16_t _u16SetLoad;
 	const ST_SEG_LOAD_T *_pstSetInfo = stSegCtrl.astSegLoad;
 	_u16SetLoad = RANGLMT(GetTmpCtrlData()->u16SetLoad,
-							_pstSetInfo[0].u16MinLoad,
-							_pstSetInfo[GetWorkCon()->u8MaxSeg].u16MaxLoad);
+						  _pstSetInfo[0].u16MinLoad,
+						  _pstSetInfo[GetWorkCon()->u8MaxSeg].u16MaxLoad);
+	// uint16_t _u16temp;
+	stSegCtrl.u16SegSwitchBlfI = GetBlfIFromPercent(SEG_SWITCH_BLF_MIN);
 
-	if (0 == stSegCtrl.u8ChgStep)
+	switch (stSegCtrl.u8ChgStep) // 还未开始换档
 	{
-        //换挡条件（满足其一）：1、目标负荷超过当前分段上限；2、目标负荷超过当前分段下限；3、首次进入稳定燃烧状态
-		if ((_u16SetLoad > _pstSetInfo[stSegCtrl.u8Cur].u16MaxLoad) 
-        || (_u16SetLoad < _pstSetInfo[stSegCtrl.u8Cur].u16MinLoad)
-        || (GetFirstSwSeg()))
+	case 0: // 换挡条件（满足其一）：1、目标负荷超过当前分段上限；2、目标负荷超过当前分段下限；3、首次进入稳定燃烧状态
+		if ((_u16SetLoad > _pstSetInfo[stSegCtrl.u8Cur].u16MaxLoad) || (_u16SetLoad < _pstSetInfo[stSegCtrl.u8Cur].u16MinLoad) || (GetFirstSwSeg()))
 		{
 			_u8temp = GetWorkCon()->u8MaxSeg;
 			while (0 < _u8temp)
@@ -124,17 +156,20 @@ static void GetSegSet(void)
 				stSegCtrl.u8Cal = _u8temp;
 			}
 		}
-
-        //需要换挡
+		// 根据燃烧状态, 检测是否需要慢开阀
+		//SwitchSegBrustStable();
+		// 需要换挡
 		if (stSegCtrl.u8Set != stSegCtrl.u8Cur)
 		{
-            //在目标负荷未发生大变化时，换挡到达一定次数时，锁定换挡
-			if (3 <= stSegCtrl.u8ChgCnt)
-			{
-				stSegCtrl.u8Set = stSegCtrl.u8Cur;
+			// 在目标负荷未发生大变化时，换挡到达一定次数时，锁定换挡
+			//	if (3 <= stSegCtrl.u8ChgCnt)
+			//{
+				//stSegCtrl.u8Set = stSegCtrl.u8Cur;
+#if (SLOW_SEG_EN)
 				stSegCtrl.u16SlowSegCnt = 0;
-			}
-			else
+#endif
+			//}
+			//else
 			{
 #if (SLOW_SEG_EN)
 				//当stSegCtrl.u8ChgCnt = 0时，若温度稳定，则不触发快速换挡，之前进行过换挡，同样不触发快速换挡
@@ -182,55 +217,41 @@ static void GetSegSet(void)
 #else
 				stSegCtrl.u8ChgCnt ++;
 #endif
+				ResetHeatStable();
+				// 判断使用哪一种换挡方式：1、没有重合的分段；2、与重合的分段
+				_u8temp = (GetWorkCon()->aunSubSegSet[stSegCtrl.u8Set].BYTE & 0xFE) & (GetWorkCon()->aunSubSegSet[stSegCtrl.u8Cur].BYTE & 0xFE);
 
-			}
-		}
-#if (SLOW_SEG_EN)
-        else
-        {
-			stSegCtrl.u16SlowSegCnt = 0;
-        }
-#endif
-	}
-}
-void QuickSwitchSeg(void)
-{
-	uint8_t _u8temp;
-	//uint16_t _u16temp;
-	stSegCtrl.u16SegSwitchBlfI = GetBlfIFromPercent(SEG_SWITCH_BLF_MIN);
-	if (stSegCtrl.u8Set != stSegCtrl.u8Cur)
-	{
-		ResetHeatStable();
-		if (0 == stSegCtrl.u8ChgStep)
-		{
-			//判断使用哪一种换挡方式：1、没有重合的分段；2、与重合的分段
-			_u8temp = (GetWorkCon()->aunSubSegSet[stSegCtrl.u8Set].BYTE & 0xFE) & (GetWorkCon()->aunSubSegSet[stSegCtrl.u8Cur].BYTE & 0xFE);
-
-			//没有共同火排
-			if (0 == _u8temp)
-			{
-				stSegCtrl.u8ChgStep = 1;
-				stSegCtrl.u8ValveStay_100ms = 15;//需要配置传火时间
-			}
-			else
-			{
-				stSegCtrl.u8ChgStep = 2;
-				stSegCtrl.u8ValveStay_100ms = 0;
-				for (_u8temp = 1; _u8temp < 5; _u8temp++)
+				// 没有共同火排
+				if (0 == _u8temp)
 				{
-					//需要打开新的分段，需要一定的负荷进行传火，因此预留一定时间（部分机器存在二次压小情况下传火困难）
-					if ((1 == ((GetWorkCon()->aunSubSegSet[stSegCtrl.u8Set].BYTE >> _u8temp) & 0x01)) && (0 == ((GetWorkCon()->aunSubSegSet[stSegCtrl.u8Cur].BYTE >> _u8temp) & 0x01)))
+					stSegCtrl.u8ChgStep = 1;
+					stSegCtrl.u8ValveStay_100ms = 15; // 需要配置传火时间
+				}
+				else
+				{
+					stSegCtrl.u8ChgStep = 2;
+					stSegCtrl.u8ValveStay_100ms = 0;
+					for (_u8temp = 1; _u8temp < 5; _u8temp++)
 					{
-						stSegCtrl.u8ValveStay_100ms = 5;//需要配置传火时间
-						break;
+						// 需要打开新的分段，需要一定的负荷进行传火，因此预留一定时间（部分机器存在二次压小情况下传火困难）
+						if ((1 == ((GetWorkCon()->aunSubSegSet[stSegCtrl.u8Set].BYTE >> _u8temp) & 0x01)) && (0 == ((GetWorkCon()->aunSubSegSet[stSegCtrl.u8Cur].BYTE >> _u8temp) & 0x01)))
+						{
+							stSegCtrl.u8ValveStay_100ms = 5; // 需要配置传火时间
+							break;
+						}
 					}
 				}
 			}
 		}
-	}
-	//TODO:后续考虑要不要同时降低风速
-	if (1 == stSegCtrl.u8ChgStep) // 换挡中无重合段（无用到）
-	{
+#if (SLOW_SEG_EN)
+		else
+		{
+			stSegCtrl.u16SlowSegCnt = 0;
+		}
+#endif
+		GetSystemRunData()->unSetValve.BYTE = GetWorkCon()->aunSubSegSet[stSegCtrl.u8Cur].BYTE;
+		break;
+	case 1: // 换挡中无重合段
 		GetSystemRunData()->unSetValve.BYTE = GetWorkCon()->aunSubSegSet[stSegCtrl.u8Set].BYTE;
 		if (0 < stSegCtrl.u8ValveStay_100ms)
 		{
@@ -245,23 +266,25 @@ void QuickSwitchSeg(void)
 			stSegCtrl.u8Cur = stSegCtrl.u8Set;
 		}
 		Reset_Pid();
-	}
-	else if (2 == stSegCtrl.u8ChgStep) // 换挡有重合段
-	{
-		//直接按照目标分段打开
-		GetSystemRunData()->unSetValve.BYTE = GetWorkCon()->aunSubSegSet[stSegCtrl.u8Set].BYTE;
-		if (0 < stSegCtrl.u8ValveStay_100ms)
-		{
-		}
-		else
-		{
-			stSegCtrl.u8ChgStep = 0;
-			stSegCtrl.u8Cur = stSegCtrl.u8Set;
-		}
-		Reset_Pid();
-	}
-	else
+		break;
+	case 2: // 换挡有重合段
+		//  直接按照目标分段打开
+		stSegCtrl.u8Cur = stSegCtrl.u8Set;
 		GetSystemRunData()->unSetValve.BYTE = GetWorkCon()->aunSubSegSet[stSegCtrl.u8Cur].BYTE;
+		if (0 == stSegCtrl.u8ValveStay_100ms)
+			stSegCtrl.u8ChgStep = 0;
+		Reset_Pid();
+		break;
+	default:
+		stSegCtrl.u8Cur = stSegCtrl.u8Set;
+		GetSystemRunData()->unSetValve.BYTE = GetWorkCon()->aunSubSegSet[stSegCtrl.u8Cur].BYTE;
+		break;
+	}
+	if (stSegCtrl.u8ChgStep)
+	{
+		stSegCtrl.BrustStableUpCnt = 0;
+		stSegCtrl.BrustStableDownCnt = 0;
+	}
 }
 uint16_t GetBlfIFromSeg(uint8_t _u8seg)
 {
@@ -307,8 +330,7 @@ void SegCtrlProcess(void)
 {
 	SegCtrl_Timer();
 	RefreshSwitchPnt(); // 刷新分段阀重合段
-	GetSegSet();
-	QuickSwitchSeg();
+	SwitchSeg();
 }
 
 

@@ -9,8 +9,8 @@
 #define REALLOAD_LENGTH 10
 
 #define PID_RUN_CYCLE (5)
-#define PID_BIF_LIMIT_MAX (300)
-#define PID_BIF_LIMIT_MIN (-300)
+#define PID_BIF_LIMIT_MAX (1000)
+#define PID_BIF_LIMIT_MIN (-1000)
 
 #define PID_NONE_RUN_INIT (120)
 
@@ -529,9 +529,10 @@ static void GetModBlf_New(void)
 	
 			if (abs(_s16temp) > GetLoadFromTmpE(20))
 			{
-			  		stTmpCtrl.u8PidNoRun_100ms =10; // 负荷突变PID暂停
-			//	Reset_Pid();
-			//	UpdateLoadAvg(stTmpCtrl.u16CalcLoad);
+				stTmpCtrl.u8PidNoRun_100ms = 10; // 负荷突变PID暂停
+				//	Reset_Pid();
+				//	UpdateLoadAvg(stTmpCtrl.u16CalcLoad);
+				stTmpCtrl.bFirstStable = 0;
 			}
 
 			ClrSubChgCnt();
@@ -595,6 +596,8 @@ static void RefreshSegLoad(void) // 原始负荷修正和赋值
 
 	uint16_t _u16temp;
 	uint8_t _u8i;
+	//if (stTmpCtrl.bFirstStable)
+		//return; // 首次稳定刷新负荷
 	for (_u8i = 0; _u8i <= GetWorkCon()->u8MaxSeg; _u8i++)
 	{
 		_u16temp = FunctionPercentLimit(stTmpCtrl.u16MaxSegPercent, stTmpCtrl.as16SegPercent[_u8i]);
@@ -688,6 +691,8 @@ void pidCtrlHandle(void)
 		stTmpCtrl.u8BurstStable_100ms = 0;
 		PidCtrl_t.notRunCnt = GetDeadZone(); // PID暂停
 		stTmpCtrl.u8PidPause_100ms = 0;
+		stTmpCtrl.bFirstStable = 0;
+		stTmpCtrl.bFirstSwSeg = 1;
 	}
 	if (++stTmpCtrl.u8PidPause_100ms >= 60)
 		stTmpCtrl.u8PidPause_100ms = 60;
@@ -744,11 +749,12 @@ void pidCtrlHandle(void)
 		stTmpCtrl.s16PIDBlf = 0;
 		Reset_Pid();
 	}
-    if(stTmpCtrl.u8PidNoRun_100ms)Reset_Pid();//负荷突变暂停
-	// if (PID_BIF_LIMIT_MAX < stTmpCtrl.s16PIDBlf)
-	// 	stTmpCtrl.s16PIDBlf = PID_BIF_LIMIT_MAX;
-	// if (PID_BIF_LIMIT_MIN > stTmpCtrl.s16PIDBlf)
-	// 	stTmpCtrl.s16PIDBlf = PID_BIF_LIMIT_MIN;
+	if (stTmpCtrl.u8PidNoRun_100ms)
+		Reset_Pid(); // 负荷突变暂停
+	if (PID_BIF_LIMIT_MAX < stTmpCtrl.s16PIDBlf)
+		stTmpCtrl.s16PIDBlf = PID_BIF_LIMIT_MAX;
+	if (PID_BIF_LIMIT_MIN > stTmpCtrl.s16PIDBlf)
+		stTmpCtrl.s16PIDBlf = PID_BIF_LIMIT_MIN;
 }
 
 static void TmpCtrl_Timer(void)
@@ -949,9 +955,9 @@ void TmpCtrlVarReset(void)
 static void RealLoadPercent(void)
 {
 	static uint8_t u8CurSegReal;
-	static uint16_t u16OutTmpSav,u16GetBlfISav;
-	static uint16_t au16RealLoadInstant[REALLOAD_LENGTH];
-	uint16_t u16_temp, u16_temp1, u16_PsvMin, u16_ELoadTemp, u16_calRealLoadPer;
+	static uint16_t u16OutTmpSav, u16GetBlfISav;
+	//static uint16_t au16RealLoadInstant[REALLOAD_LENGTH];
+	uint16_t u16_temp, u16_temp1, u16_PsvMin, u16_ELoadTemp; //u16_calRealLoadPer;
 	uint32_t u32_temp;
 	int16_t s16_LoadEData;
 	int16_t s16_Temp, s16_Temp2;
@@ -1028,7 +1034,9 @@ static void RealLoadPercent(void)
 		u16_temp = 1300;
 	// if (690 > u16_temp)u16_temp = 690;
 
-	u16_calRealLoadPer = u16_temp;
+	u16_temp1 = u16_temp;
+	/*
+		u16_calRealLoadPer = u16_temp;
 	u16_temp1 = 0;
 	for (u16_temp = 0; u16_temp < (REALLOAD_LENGTH - 1); u16_temp++)
 	{
@@ -1040,7 +1048,7 @@ static void RealLoadPercent(void)
 	}
 	au16RealLoadInstant[REALLOAD_LENGTH - 1] = u16_calRealLoadPer;
 	u16_temp1 /= (REALLOAD_LENGTH / 2);
-
+	  */
 	/*此处需要优化
 	if ((0 != stTmpCtrl.u8PidPause_100ms)
 		|| (0 != pstSegCtrl_TC->u8Switching_100ms)
@@ -1054,6 +1062,7 @@ static void RealLoadPercent(void)
 		stTmpCtrl.bHeatStable = 1;//温度稳定标志位置1
 		if (0 == stTmpCtrl.bFirstStable)
 		{
+			Reset_Pid();
 			s16_Temp = (int16_t)u16_temp1 - s16_LoadEData - stTmpCtrl.as16SegPercent[GetSegCtrl()->u8Cur];
 			stTmpCtrl.u16MaxSegPercent = GETMAX(PERCENT_MIN, s16_Temp);
 			// stTmpCtrl.u16MaxSegPercent = u16_temp1 - s16_LoadEData - stTmpCtrl.as16SegPercent[GetSegCtrl()->u8Cur];
@@ -1074,7 +1083,7 @@ static void RealLoadPercent(void)
 
 		stTmpCtrl.u8BurstStable_100ms = 0;
 		stTmpCtrl.bFirstStable = 1;
-		Reset_Pid();
+		// Reset_Pid();
 	}
 	else
 	{
