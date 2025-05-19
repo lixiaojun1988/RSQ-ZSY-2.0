@@ -23,6 +23,7 @@ void mdl_adc_handle(void)
 	mdl_adc_tick = 0;
 	for (i = 0; i < ADC_SUM; i++)
 	{
+	
 		AD_In = bps_adc_get_value(tab_adc_ch[i]);
 		adc_st.Sum[i] += AD_In;
 		if (AD_In > adc_st.Max[i])
@@ -33,12 +34,12 @@ void mdl_adc_handle(void)
 		{
 			adc_st.Min[i] = AD_In;
 		}
-		if (++adc_st.Cnt[i] >= 10)
+		if (++adc_st.Cnt[i] >= 18)
 		{
 			adc_st.Cnt[i] = 0;
 			adc_st.Sum[i] = adc_st.Sum[i] - adc_st.Max[i];
 			adc_st.Sum[i] = adc_st.Sum[i] - adc_st.Min[i];
-			adc_st.Sum[i] >>= 3;
+			adc_st.Sum[i] >>= 4;
 			adc_st.Result[i] = adc_st.Sum[i];
 			adc_st.Sum[i] = 0;
 			adc_st.Max[i] = 0;

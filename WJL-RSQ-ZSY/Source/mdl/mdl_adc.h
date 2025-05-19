@@ -20,7 +20,7 @@ typedef struct
   uint16_t Read[ADC_SUM];
   uint16_t Max[ADC_SUM];
   uint16_t Min[ADC_SUM];
-  uint16_t Sum[ADC_SUM];
+  uint32_t Sum[ADC_SUM];
   uint16_t Result[ADC_SUM];
   unsigned char ErrorCnt[ADC_SUM];
   unsigned char Cnt[ADC_SUM];

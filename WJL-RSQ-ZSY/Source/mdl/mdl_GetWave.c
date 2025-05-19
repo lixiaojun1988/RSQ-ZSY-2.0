@@ -101,9 +101,9 @@ void GetWaveTask(void) // 1MS
     for (uint8_t i = 0; i < GET_WAVE_SENSOR_NUM; i++)
     {
         /* <= 1.5L ,10Q-1涓�1.5L,8Q-3涓�2L, 6.9Q涓�1.9L*/
-        if (objects[i].WaveSensor.nPulseTmCnt >= 7500) // 妞嬪孩婧€瀵板懎鐣�
+        if (objects[i].WaveSensor.nPulseTmCnt >= 1000) // 妞嬪孩婧€瀵板懎鐣�
         {
-            objects[i].WaveSensor.nPulseTmCnt = 7500;
+            objects[i].WaveSensor.nPulseTmCnt = 1000;
             objects[i].WaveSensor.Value = 0;
             objects[i].WaveSensor.nHasWaterTm = 0;
         }

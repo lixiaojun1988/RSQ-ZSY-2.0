@@ -3,9 +3,9 @@
  * File:         万家乐燃气热水器主控自适应方案
  * Layer:
  * Author:       xjli
- * Version:      V1
+ * Version:      V2
  * Brief:		     SH32F9010P  44PIN
- * date：       2024-12-12
+ * date：       2025-4-30
  *************************************************************************/
 
 #define __RAM_DEFINE__
