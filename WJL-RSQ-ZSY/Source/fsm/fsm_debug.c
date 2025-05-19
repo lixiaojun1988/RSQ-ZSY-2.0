@@ -145,7 +145,7 @@ void FsmDebugDoingHandler(void)
 		SetFsmState(FSM_STATE_STABLE);
 	}
 	SegCtrl_Timer();
-	SwitchSeg(); 
+	SwitchSeg(0); 
 
 	//处于换挡的时候，换挡时的电流为目标电流和最小换挡电流的最大值决定
 	if (0 != GetSegCtrl()->u8ChgStep)

@@ -23,7 +23,6 @@ typedef struct
 #endif
 	uint8_t	u8Set;
 	uint8_t	u8Cur;
-    uint8_t u8Cal;//理论计算出来的分段
 	uint8_t	u8ChgStep;
 	uint8_t	u8ValveStay_100ms;
 	uint8_t	u8ChgCnt;
@@ -34,8 +33,8 @@ typedef struct
 extern	void	SetManualSeg(uint8_t	_u8set);
 extern	void	ClrSubChgCnt(void);
 extern	void	SegCtrlInit(void);
-extern	void	SegCtrlProcess(void);
-extern	void	SwitchSeg(void);
+extern	void	SegCtrlProcess(uint8_t _Auto);
+extern	void	SwitchSeg(uint8_t _Auto);
 extern	const	ST_SEGCTRL_T* GetSegCtrl(void);
 extern uint16_t	GetBlfIFromSeg(uint8_t	_u8seg);
 extern	void SegCtrl_Timer(void);
