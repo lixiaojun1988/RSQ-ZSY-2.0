@@ -18,9 +18,11 @@ typedef struct
 	int16_t s16ModBlf;
 	uint16_t u16CalcLoad; // 计算的理论负荷
 	uint16_t u16SetLoad;  // 设置负荷
+    uint16_t u16BlfIStart;
 	//uint16_t u16OutLoad;
 	uint8_t u8StartBurst_100ms;
 	uint8_t u8BurstStable_100ms;
+    uint8_t u8BurstLimit_100ms;
 	uint8_t u8PidPause_100ms;
 	uint8_t u8PidNoRun_100ms;
 	uint16_t u16CurvePercent;

@@ -18,6 +18,8 @@
 #define KEEP_ARRARY_SEG_MAX 3  // 分段阀数量
 #define BLF_ERROR_PERC_MIN 600 // PID偏差千分比限制
 #define BLF_ERROR_PERC_MAX 1400
+
+#define STABLE_START_ADD    12
 typedef struct
 {
 	uint8_t clacDelay;
@@ -48,14 +50,8 @@ typedef struct
 	int16_t s16ELoad;
 } ST_LOADEDATA_T;
 
-#if (CtrlTemp_Deep)
-static uint32_t u32SetLoadFiterSum;
-#define DEEP_VALVE      8//滤波深度
-#else
 static uint16_t au16SetLoadList[SETLOAD_LENGTH];
-
 static uint16_t au16SetFluxList[SETFLUX_LENGTH];
-#endif
 static uint8_t u8OverWaterStop_100ms;
 
 #if 0
@@ -277,15 +273,31 @@ void RefreshBlfMaxMin(void)
 	_u16temp = GETMIN(0xFF, _u16temp);
 	GetSystemRunData()->u16BlfIRun_Max = ConvertDbgToCtrl_Blf((uint8_t)_u16temp);
 
-	//比例阀最小开度代码（理论最小范围，各分段额外处理不算）
-	_u16temp = GetFlashDataSector0()->debugData.u8Pl;
-
 	//比例阀实际最小开度
 	_u16temp = (uint16_t)GetBasicBlfMin() + GetWorkCon()->astSegIncrBLF[GetSegCtrl()->u8Set].s8MinIncr;
 	_u16temp = GETMIN(0xFF, _u16temp);
 	GetSystemRunData()->u16BlfIRun_Min = ConvertDbgToCtrl_Blf((uint8_t)_u16temp);
 
 	GetSystemRunData()->u16BlfIRun_E = GetSystemRunData()->u16BlfIRun_Max - GetSystemRunData()->u16BlfIRun_Min;
+
+    if (stTmpCtrl.u16BlfIStart >= GetSystemRunData()->u16BlfIRun_Max)
+    {
+        GetSystemRunData()->u16BlfILimit = GetSystemRunData()->u16BlfIRun_Max;
+    }
+    else
+    {
+        // 现在处于比例阀限制时间
+        if (TM_SLOW_BURST >= stTmpCtrl.u8BurstLimit_100ms)
+        {
+            _u16temp = GetSystemRunData()->u16BlfIRun_Max - stTmpCtrl.u16BlfIStart;//计算出电流可变化空间
+            _u16temp = (uint32_t)_u16temp * stTmpCtrl.u8BurstLimit_100ms / 60;
+            GetSystemRunData()->u16BlfILimit = _u16temp + stTmpCtrl.u16BlfIStart;
+        }   
+        else
+        {
+            GetSystemRunData()->u16BlfILimit = GetSystemRunData()->u16BlfIRun_Max;
+        }
+    }
 }
 
 void Reset_Pid(void)
@@ -303,16 +315,12 @@ static uint16_t GetLoadFromTmpE(uint16_t _u16TmpE)
 }
 static void UpdateLoadAvg(uint16_t _u16Setload)
 {
-#if (CtrlTemp_Deep)
-    u32SetLoadFiterSum = (uint32_t)_u16Setload * (DEEP_VALVE - 1);
-#else
 	uint8_t _u8i;
 	for (_u8i = 0; _u8i < ARR_NUM(au16SetLoadList); _u8i++)
 	{
 		au16SetLoadList[_u8i] = _u16Setload;
 	}
 	stTmpCtrl.u16SetLoad = _u16Setload;
-#endif
 }
 
 static uint8_t GetDeadZone(void)
@@ -374,16 +382,6 @@ void TmpCtrlPrepare(void)
 	stTmpCtrl.u16CalcLoad = GetLoadFromTmpE(_u16Temp);//计算出需要的负荷变化
 	// stTmpCtrl.u16CalcLoad =RANGLMT(stTmpCtrl.u16CalcLoad, GetWorkCon()->astSegLoad[0].u16MinLoad, GetWorkCon()->astSegLoad[GetWorkCon()->u8MaxSeg].u16MaxLoad);
 
-#if (CtrlTemp_Deep)
-    stTmpCtrl.u16SetLoad = FilterDeep(stTmpCtrl.u16CalcLoad, &u32SetLoadFiterSum, DEEP_VALVE);
-
-    //若当前目标负荷与理论负荷偏差约2℃，则立即对理论负荷进行覆盖处理
-    if (abs(stTmpCtrl.u16SetLoad - stTmpCtrl.u16CalcLoad) > GetLoadFromTmpE(20))
-	{
-		UpdateLoadAvg(stTmpCtrl.u16CalcLoad);
-		Reset_Pid(); //}
-	}
-#else
 	_u32Temp = 0;
 	for (_u16Temp = 0; SETLOAD_LENGTH > _u16Temp; _u16Temp++)
 	{
@@ -408,7 +406,7 @@ void TmpCtrlPrepare(void)
 		UpdateLoadAvg(stTmpCtrl.u16CalcLoad);
 		// stTmpCtrl.u8PidPause_100ms = GetDeadZone(); // 负荷突变PID暂停
 		Reset_Pid(); //}
-		
+		stTmpCtrl.bHeatStable = 0;
 	}
 	else
 	{
@@ -434,7 +432,6 @@ void TmpCtrlPrepare(void)
 		//	UpdateLoadAvg(stTmpCtrl.u16CalcLoad);
 		// Reset_Pid(); //}
 	}
-#endif
 }
 static void GetModBlf_New(void)
 {
@@ -609,7 +606,9 @@ static void RefreshSegLoad(void) // 原始负荷修正和赋值
 static void GetTheroyBlf(void)
 {
 	//	uint8_t index;
-	uint16_t blf, _u16LoadE, _u16temp;
+    static uint16_t _SpecAddTmp;
+    static uint8_t _SepcAddCnt;
+	uint16_t blf, _u16LoadE, _u16temp, _u16temp2;
 	// uint32_t temp;
 
     //温度已经稳定一段时间，且已经燃烧超过一段时间（说明已经稳定）
@@ -650,7 +649,26 @@ static void GetTheroyBlf(void)
 		_u16temp = 0;
 	}
 	_u16temp += stTmpCtrl.u16SetLoad;
-
+    //前期额外在增加一定温度的负荷
+    if (TM_STARTBURST > stTmpCtrl.u8StartBurst_100ms)
+    {
+        _SepcAddCnt = 80;
+        if (GetSystemRunData()->TmpSet > GetSystemRunData()->TmpIn)
+        {
+            //计算前期额外增加的负荷
+            _SpecAddTmp = STABLE_START_ADD * GetSystemRunData()->Flux;//
+        }   
+        else
+            _SpecAddTmp = 0;
+        _u16temp2 = _SpecAddTmp;
+    }
+    else
+    {
+        // 超过时间后，逐渐降低
+        DEC(_SepcAddCnt);
+        _u16temp2 = (uint32_t)_SpecAddTmp * _SepcAddCnt / 80;
+    }
+    _u16temp += _u16temp2;
 	////////////////////////////////////////////////////////////////////////////////////
 	blf = GetBlfFromLoad(_u16temp, GetSegCtrl()->u8Set);
 	/*
@@ -749,8 +767,13 @@ void pidCtrlHandle(void)
 		stTmpCtrl.s16PIDBlf = 0;
 		Reset_Pid();
 	}
-	if (stTmpCtrl.u8PidNoRun_100ms)
-		Reset_Pid(); // 负荷突变暂停
+
+    if(stTmpCtrl.u8PidNoRun_100ms)
+    {
+        Reset_Pid();//负荷突变暂停
+        stTmpCtrl.s16PIDBlf = 0;
+    }
+        
 	if (PID_BIF_LIMIT_MAX < stTmpCtrl.s16PIDBlf)
 		stTmpCtrl.s16PIDBlf = PID_BIF_LIMIT_MAX;
 	if (PID_BIF_LIMIT_MIN > stTmpCtrl.s16PIDBlf)
@@ -760,6 +783,7 @@ void pidCtrlHandle(void)
 static void TmpCtrl_Timer(void)
 {
 	DEC(stTmpCtrl.u8PidNoRun_100ms);
+    INC_B(stTmpCtrl.u8BurstLimit_100ms);
 	INC_B(stTmpCtrl.u8PidPause_100ms);
 	INC_B(stTmpCtrl.u8StartBurst_100ms);
 	INC_B(stTmpCtrl.u8BurstStable_100ms); // 稳定燃烧时间累计
@@ -943,12 +967,15 @@ void TmpCtrlVarReset(void)
 	stTmpCtrl.u8PidNoRun_100ms=0;
 	stTmpCtrl.bFirstSwSeg = 1;
 	stTmpCtrl.bHeatStable = 0;//温度稳定标志位
+	stTmpCtrl.u8BurstLimit_100ms = 0;
+    stTmpCtrl.u16BlfIStart = GetSystemRunData()->u16SetBlfI;
 	Reset_Pid();
 	// temper_keep_var_clear();
 	if (690 > stTmpCtrl.u16MaxSegPercent)
 	{
 		ReSetPercent();
 	}
+   ClrSubChgCnt();
 }
 
 
@@ -993,10 +1020,11 @@ static void RealLoadPercent(void)
 		stTmpCtrl.u8BurstStable_100ms = 0;
 	}
 
-	if (abs(GetSystemRunData()->TmpSet - GetSystemRunData()->TmpOut) > 3) // 出水温度达到设定温度
-	{
-		stTmpCtrl.u8BurstStable_100ms = 0;
-	}
+    // TODO:该处理方法可以避免在低气压的时候，误计算出低气压导致的偏差，但同时会导致低气压异常无法正常判断
+	// if (abs(GetSystemRunData()->TmpSet - GetSystemRunData()->TmpOut) > 3) 
+	// {
+	// 	stTmpCtrl.u8BurstStable_100ms = 0;
+	// }
 	if (GetSystemRunData()->Flux < 30 && GetSystemRunData()->Flux > 200)
 	{
 		stTmpCtrl.u8BurstStable_100ms = 0;
@@ -1105,7 +1133,7 @@ void TmpCtrlProcess(void) // 10MS
 		RefreshBlfMaxMin(); // 获取比例阀和比例阀差值
 		TmpCtrlPrepare();	// 得到理论负荷
 		GetModBlf_New();	// 负荷突变
-		SegCtrlProcess();	// 设置分段阀
+		SegCtrlProcess(1);	// 设置分段阀
 		GetTheroyBlf();		// 得到理论比例阀开度
 		pidCtrlHandle();	// pid计算
 		GetSystemRunData()->u16SetBlfI = stTmpCtrl.u16TheroyBlf + stTmpCtrl.s16PIDBlf + stTmpCtrl.s16ModBlf;

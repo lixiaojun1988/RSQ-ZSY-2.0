@@ -106,6 +106,7 @@ typedef struct
 	uint16_t TmpFD;			 // 防冻
 	uint16_t u16BlfIRun_Max; // 在u8BlfIRunBasic_Max基础上，根据实际情况下进行调整（如各分段额外加减耗气）
 	uint16_t u16BlfIRun_Min; // 在u8BlfIRunBasic_Min基础上，根据实际情况下进行调整（如各分段额外加减耗气）
+    uint16_t u16BlfILimit;//刚启动时，比例阀的开度限制，避免短时间内加气太多导致的振动问题
 	uint16_t u16BlfIRun_E;
 	uint16_t u16ELoad;//当前分段负荷差
 	uint8_t bWaitInTmp;
