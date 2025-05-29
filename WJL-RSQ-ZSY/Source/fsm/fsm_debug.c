@@ -14,11 +14,13 @@ void FsmDebugEnterHandler(void)
 	memset(&fsmVar_t, 0, sizeof(fsmVar_t));
 	SetFsmStage(FSM_STAGE_DOING);
     SegCtrlInit();
+    GetTmpCtrlData()->u8AddGasDelay_100ms = 0;
 }
 
 void FsmDebugDoingHandler(void)
 {
 	const ST_DBG_INFO_T *_stDbgInfo;
+    static uint16_t u16_DiffTimer = 0;
 	static	uint8_t _u8DdValve = 0;
 	uint16_t _u16temp;
 	EN_ERRORCODE_T _enErr;
@@ -63,7 +65,8 @@ void FsmDebugDoingHandler(void)
 	//DH状态：比例阀开度DH，风机转速跟随比例阀开度，分段阀最大
 	else if ((EN_CODE_d == _stDbgInfo->u8CodeH) && (EN_CODE_H == _stDbgInfo->u8CodeL))
 	{
-		SetManualSeg(GetWorkCon()->u8MaxSeg);
+		// SetManualSeg(GetWorkCon()->u8MaxSeg);
+        SetManualSeg(GetWorkCon()->u8FireSegSet);
 		GetSystemRunData()->u16SetBlfI = ConvertDbgToCtrl_Blf(GetFlashDataSector0()->debugData.u8Dh);
 		GetSystemRunData()->u16SetDCFanI = GetFanUFromBlf(GetSystemRunData()->u16SetBlfI);
 	}
@@ -144,8 +147,12 @@ void FsmDebugDoingHandler(void)
 	{
 		SetFsmState(FSM_STATE_STABLE);
 	}
-	SegCtrl_Timer();
-	SwitchSeg(0); 
+    
+	if (++u16_DiffTimer >= 10) // 100MS计算一次
+	{
+		u16_DiffTimer = 0;
+        SegCtrlProcess(0);
+    }
 
 	//处于换挡的时候，换挡时的电流为目标电流和最小换挡电流的最大值决定
 	if (0 != GetSegCtrl()->u8ChgStep)
