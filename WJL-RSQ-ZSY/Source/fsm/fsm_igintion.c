@@ -90,7 +90,11 @@ void FsmIgintionDoingHandler(void) // 10MS
 			if (EN_MAIN_STATE_DEBUG == GetSystemRunData()->sysSta.BIT.bMainSta)
 				SetFsmState(FSM_STATE_DEBUG);
 			else
-				SetFsmState(FSM_STATE_STABLE);
+            {
+                SetFsmState(FSM_STATE_STABLE);
+                GetTmpCtrlData()->u8AddGasDelay_100ms = (uint8_t)getAdapData()->delayAddGasTime_1s * 10;
+            }
+				
 		}
 		setBlfI = GetSystemRunData()->u16SetBlfI;
 	}
