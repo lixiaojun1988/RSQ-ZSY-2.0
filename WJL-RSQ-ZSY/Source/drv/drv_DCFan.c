@@ -55,7 +55,7 @@ void	Drv_SetDCFanPWM(uint16_t _u16SetI)
 	PWM_SetDuty(PWM3,  _u16SetI);///duty
 }
 #else
-uint8_t TestFan = 0;
+uint8_t TestFan = 1;
 uint8_t TestBrakeTime;
 uint8_t TestA;
 uint16_t u16TestA;
