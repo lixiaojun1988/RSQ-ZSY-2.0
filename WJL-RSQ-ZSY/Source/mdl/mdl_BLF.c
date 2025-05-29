@@ -34,8 +34,10 @@ void Blf_Iteration_10ms(void)
 				_u16TempE = _u16SetBlfI - u16SetBlfOut;
 				//加气变化限制值
 				_u16Temp = (uint32_t)(GetSystemRunData()->u16BlfIRun_E) * GetWorkCon()->u16AddGasSpd / 1000;
+                #if (!AdptAddGasLimit)
 				//自适应额外加风
 				_u16Temp = (uint32_t)_u16Temp * getAdapData()->AddGasSpedPer / 100;
+                #endif
 				if ((_u16TempE > _u16Temp) && (_u16TempE >= _u16BlfQuickReach))
 				{
 					if (1 > _u16Temp)
