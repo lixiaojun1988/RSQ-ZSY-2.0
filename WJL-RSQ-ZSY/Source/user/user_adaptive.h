@@ -43,7 +43,7 @@ typedef struct
     int8_t Hc_add;
     int8_t Ph_add;
     uint8_t finalGrade;      // 最终分档;
-    uint16_t delayAddAirTime_1s; // 延时加气时间;
+    uint16_t delayAddGasTime_1s; // 延时加气时间;
     
 	  float fSplTemp;//室温
 	 float fSplPressure;
