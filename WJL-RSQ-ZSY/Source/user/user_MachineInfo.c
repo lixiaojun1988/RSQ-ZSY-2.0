@@ -188,24 +188,24 @@ void GetMachineInfo_Z8L(void)
 		stWrkConCur.astSegLoad[3].u16MinLoad = 17125;
     */
 
-        stWrkConCur.astSegLoad[0].u16MaxLoad = 9485;
-		stWrkConCur.astSegLoad[0].u16MinLoad = 5148;
-		stWrkConCur.astSegLoad[1].u16MaxLoad = 17111;
-		stWrkConCur.astSegLoad[1].u16MinLoad = 8775;
-		stWrkConCur.astSegLoad[2].u16MaxLoad = 29861;
-		stWrkConCur.astSegLoad[2].u16MinLoad = 14872;
-		stWrkConCur.astSegLoad[3].u16MaxLoad = 35304;
-		stWrkConCur.astSegLoad[3].u16MinLoad = 15871;
+        stWrkConCur.astSegLoad[0].u16MaxLoad = 9014;
+		stWrkConCur.astSegLoad[0].u16MinLoad = 4530;
+		stWrkConCur.astSegLoad[1].u16MaxLoad = 16667;
+		stWrkConCur.astSegLoad[1].u16MinLoad = 8445;
+		stWrkConCur.astSegLoad[2].u16MaxLoad = 22878;
+		stWrkConCur.astSegLoad[2].u16MinLoad = 11084;
+		stWrkConCur.astSegLoad[3].u16MaxLoad = 36080;
+		stWrkConCur.astSegLoad[3].u16MinLoad = 16913;
 
 		stWrkConCur.as16LoadArray[0] = 0;
-		stWrkConCur.as16LoadArray[1] = 53;
-		stWrkConCur.as16LoadArray[2] = 73;
-		stWrkConCur.as16LoadArray[3] = 115;
-		stWrkConCur.as16LoadArray[4] = 116;
-		stWrkConCur.as16LoadArray[5] = 109;
-		stWrkConCur.as16LoadArray[6] = 82;
-		stWrkConCur.as16LoadArray[7] = 60;
-		stWrkConCur.as16LoadArray[8] = 33;
+		stWrkConCur.as16LoadArray[1] = 58;
+		stWrkConCur.as16LoadArray[2] = 93;
+		stWrkConCur.as16LoadArray[3] = 107;
+		stWrkConCur.as16LoadArray[4] = 90;
+		stWrkConCur.as16LoadArray[5] = 87;
+		stWrkConCur.as16LoadArray[6] = 70;
+		stWrkConCur.as16LoadArray[7] = 48;
+		stWrkConCur.as16LoadArray[8] = 29;
 		stWrkConCur.as16LoadArray[9] = 0;
 
 		stWrkConCur.astSegIncrBLF[0].s8MinIncr = 0;
@@ -253,24 +253,24 @@ void GetMachineInfo_Z8L(void)
 		stWrkConCur.aunSubSegSet[2].BYTE = EN_MAIN_BIT | EN_SUB2_BIT;
 		stWrkConCur.aunSubSegSet[3].BYTE = EN_MAIN_BIT | EN_SUB1_BIT | EN_SUB2_BIT | EN_SUB3_BIT;
 
-        stWrkConCur.astSegLoad[0].u16MaxLoad = 9485;
-		stWrkConCur.astSegLoad[0].u16MinLoad = 5148;
-		stWrkConCur.astSegLoad[1].u16MaxLoad = 17111;
-		stWrkConCur.astSegLoad[1].u16MinLoad = 8775;
-		stWrkConCur.astSegLoad[2].u16MaxLoad = 29861;
-		stWrkConCur.astSegLoad[2].u16MinLoad = 14872;
-		stWrkConCur.astSegLoad[3].u16MaxLoad = 35304;
-		stWrkConCur.astSegLoad[3].u16MinLoad = 15871;
+        stWrkConCur.astSegLoad[0].u16MaxLoad = 9014;
+		stWrkConCur.astSegLoad[0].u16MinLoad = 4530;
+		stWrkConCur.astSegLoad[1].u16MaxLoad = 16667;
+		stWrkConCur.astSegLoad[1].u16MinLoad = 8445;
+		stWrkConCur.astSegLoad[2].u16MaxLoad = 22878;
+		stWrkConCur.astSegLoad[2].u16MinLoad = 11084;
+		stWrkConCur.astSegLoad[3].u16MaxLoad = 36080;
+		stWrkConCur.astSegLoad[3].u16MinLoad = 16913;
 
 		stWrkConCur.as16LoadArray[0] = 0;
-		stWrkConCur.as16LoadArray[1] = 53;
-		stWrkConCur.as16LoadArray[2] = 73;
-		stWrkConCur.as16LoadArray[3] = 115;
-		stWrkConCur.as16LoadArray[4] = 116;
-		stWrkConCur.as16LoadArray[5] = 109;
-		stWrkConCur.as16LoadArray[6] = 82;
-		stWrkConCur.as16LoadArray[7] = 60;
-		stWrkConCur.as16LoadArray[8] = 33;
+		stWrkConCur.as16LoadArray[1] = 58;
+		stWrkConCur.as16LoadArray[2] = 93;
+		stWrkConCur.as16LoadArray[3] = 107;
+		stWrkConCur.as16LoadArray[4] = 90;
+		stWrkConCur.as16LoadArray[5] = 87;
+		stWrkConCur.as16LoadArray[6] = 70;
+		stWrkConCur.as16LoadArray[7] = 48;
+		stWrkConCur.as16LoadArray[8] = 29;
 		stWrkConCur.as16LoadArray[9] = 0;
 
 		stWrkConCur.astSegIncrBLF[0].s8MinIncr = 0;
