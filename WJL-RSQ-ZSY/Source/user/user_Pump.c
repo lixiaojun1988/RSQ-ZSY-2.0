@@ -133,7 +133,7 @@ void PumpE7_Function(uint8_t _On)
             if (PUMP_ERROR_TIME < u8ErrE7_100ms)
             {
                 GetSystemRunData()->u8ErrorCode = EN_ERR_E7;
-                SetFsmState(FSM_STATE_ENDCLEAN);
+                SetFsmState(FSM_STATE_ERROR);
             }
         }
     }
@@ -1137,7 +1137,6 @@ void PumpFunction(void)
         }
     }
     
-
     // 水控功能
     PumpWaterCtrl();
 }
