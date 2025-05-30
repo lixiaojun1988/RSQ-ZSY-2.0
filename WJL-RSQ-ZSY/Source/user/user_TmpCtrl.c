@@ -113,7 +113,7 @@ uint16_t load2pwm(uint16_t load, uint8_t subIndex)
 	return (uint16_t)result;
 }
 #endif
-const ST_TMPCTRL_T *GetTmpCtrlData(void)
+ST_TMPCTRL_T *GetTmpCtrlData(void)
 {
 	return &stTmpCtrl;
 }
@@ -267,7 +267,7 @@ uint16_t FunctionPercentLimit(uint16_t _u16Temp, int16_t _s16Variance)
 void RefreshBlfMaxMin(void)
 {
 	uint16_t _u16temp;
-
+    uint16_t _u16LimitGas_100ms;
 	//比例阀实际最大开度
 	_u16temp = (uint16_t)GetBasicBlfMax() + GetWorkCon()->astSegIncrBLF[GetSegCtrl()->u8Set].s8MaxIncr;
 	_u16temp = GETMIN(0xFF, _u16temp);
@@ -286,11 +286,16 @@ void RefreshBlfMaxMin(void)
     }
     else
     {
+        _u16LimitGas_100ms = TM_SLOW_BURST * 100 / getAdapData()->AddGasSpedPer;
         // 现在处于比例阀限制时间
-        if (TM_SLOW_BURST >= stTmpCtrl.u8BurstLimit_100ms)
+        if (_u16LimitGas_100ms >= stTmpCtrl.u16BurstLimit_100ms)
         {
             _u16temp = GetSystemRunData()->u16BlfIRun_Max - stTmpCtrl.u16BlfIStart;//计算出电流可变化空间
-            _u16temp = (uint32_t)_u16temp * stTmpCtrl.u8BurstLimit_100ms / 60;
+        #if (AdptAddGasLimit)
+            _u16temp = (uint32_t)_u16temp * stTmpCtrl.u16BurstLimit_100ms / _u16LimitGas_100ms;
+        #else
+            _u16temp = (uint32_t)_u16temp * stTmpCtrl.u16BurstLimit_100ms / _u16LimitGas_100ms;
+        #endif
             GetSystemRunData()->u16BlfILimit = _u16temp + stTmpCtrl.u16BlfIStart;
         }   
         else
@@ -405,6 +410,7 @@ void TmpCtrlPrepare(void)
 		//	u8LoadChgCnt = 0;
 		UpdateLoadAvg(stTmpCtrl.u16CalcLoad);
 		// stTmpCtrl.u8PidPause_100ms = GetDeadZone(); // 负荷突变PID暂停
+        ClrSubChgCnt();
 		Reset_Pid(); //}
 		stTmpCtrl.bHeatStable = 0;
 	}
@@ -782,8 +788,13 @@ void pidCtrlHandle(void)
 
 static void TmpCtrl_Timer(void)
 {
+    if (stTmpCtrl.u8AddGasDelay_100ms)
+    {
+        stTmpCtrl.u8AddGasDelay_100ms--;
+        return;
+    }
 	DEC(stTmpCtrl.u8PidNoRun_100ms);
-    INC_B(stTmpCtrl.u8BurstLimit_100ms);
+    INC_B(stTmpCtrl.u16BurstLimit_100ms);
 	INC_B(stTmpCtrl.u8PidPause_100ms);
 	INC_B(stTmpCtrl.u8StartBurst_100ms);
 	INC_B(stTmpCtrl.u8BurstStable_100ms); // 稳定燃烧时间累计
@@ -967,7 +978,7 @@ void TmpCtrlVarReset(void)
 	stTmpCtrl.u8PidNoRun_100ms=0;
 	stTmpCtrl.bFirstSwSeg = 1;
 	stTmpCtrl.bHeatStable = 0;//温度稳定标志位
-	stTmpCtrl.u8BurstLimit_100ms = 0;
+	stTmpCtrl.u16BurstLimit_100ms = 0;
     stTmpCtrl.u16BlfIStart = GetSystemRunData()->u16SetBlfI;
 	Reset_Pid();
 	// temper_keep_var_clear();
@@ -975,7 +986,7 @@ void TmpCtrlVarReset(void)
 	{
 		ReSetPercent();
 	}
-   ClrSubChgCnt();
+    ClrSubChgCnt();
 }
 
 
@@ -1132,13 +1143,40 @@ void TmpCtrlProcess(void) // 10MS
 		RefreshSegLoad();	// 刷新设置负荷
 		RefreshBlfMaxMin(); // 获取比例阀和比例阀差值
 		TmpCtrlPrepare();	// 得到理论负荷
-		GetModBlf_New();	// 负荷突变
-		SegCtrlProcess(1);	// 设置分段阀
-		GetTheroyBlf();		// 得到理论比例阀开度
-		pidCtrlHandle();	// pid计算
+        #if (AdptSegAuto)
+        if (0 == stTmpCtrl.u8AddGasDelay_100ms)
+        {
+            GetModBlf_New();	// 负荷突变
+            SegCtrlProcess(1);	// 设置分段阀
+            GetTheroyBlf();		// 得到理论比例阀开度
+            pidCtrlHandle();	// pid计算
+        }
+        else
+        {
+            SegCtrlProcess(1);	// 设置分段阀
+            GetTheroyBlf();		// 得到理论比例阀开度
+        }
+        #else
+        if (0 == stTmpCtrl.u8AddGasDelay_100ms)
+        {
+            GetModBlf_New();	// 负荷突变
+            SegCtrlProcess(1);	// 设置分段阀
+            GetTheroyBlf();		// 得到理论比例阀开度
+            pidCtrlHandle();	// pid计算
+        }
+        else
+        {
+            GetTheroyBlf();		// 得到理论比例阀开度
+        }
+        #endif
+            
+            
 		GetSystemRunData()->u16SetBlfI = stTmpCtrl.u16TheroyBlf + stTmpCtrl.s16PIDBlf + stTmpCtrl.s16ModBlf;
 		//  比例阀限制
-		GetSystemRunData()->u16SetBlfI = RANGLMT(GetSystemRunData()->u16SetBlfI, GetSystemRunData()->u16BlfIRun_Min, GetSystemRunData()->u16BlfIRun_Max);
+        if (stTmpCtrl.u8AddGasDelay_100ms)
+            GetSystemRunData()->u16SetBlfI = GETMIN(GetSystemRunData()->u16SetBlfI, stTmpCtrl.u16BlfIStart);
+        else
+			GetSystemRunData()->u16SetBlfI = RANGLMT(GetSystemRunData()->u16SetBlfI, GetSystemRunData()->u16BlfIRun_Min, GetSystemRunData()->u16BlfILimit);
 	}
 }
 
