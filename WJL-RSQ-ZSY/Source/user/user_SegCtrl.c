@@ -90,80 +90,46 @@ static void RefreshSwitchPnt(void)
 	}
 }
 
-uint8_t SwitchSegBrustStable(uint8_t _SegType)
+void SwitchSegBrustStable(void)
 {
-    // 检测是否需要向上切换
-	if ((stSegCtrl.u8Cur < GetWorkCon()->u8MaxSeg) &&
-        (GetSystemRunData()->u16SetBlfI >= GetSystemRunData()->u16BlfIRun_Max - 20) &&
-        (GetSystemRunData()->TmpSet > GetSystemRunData()->TmpOut + 10) &&
-        (FSM_STATE_STABLE == GetFsmState()))
-    {
-        if (++stSegCtrl.BrustStableUpCnt >= 30)
-        {
-            stSegCtrl.BrustStableUpCnt = 0;
-            stSegCtrl.u8Set = stSegCtrl.u8Cur + 1;
-            _SegType = 2;
-        }
-    }
-    else
-        stSegCtrl.BrustStableUpCnt = 0;
-    // 检测是否需要向下切换
-    if ((stSegCtrl.u8Cur > 0) &&
-        (GetSystemRunData()->u16SetBlfI <= GetSystemRunData()->u16BlfIRun_Min + 20) &&
-        (GetSystemRunData()->TmpOut > GetSystemRunData()->TmpSet + 10) &&
-        (FSM_STATE_STABLE == GetFsmState()))
-    {
-        if (++stSegCtrl.BrustStableDownCnt >= 30)
-        {
-            stSegCtrl.BrustStableDownCnt = 0;
-            stSegCtrl.u8Set = stSegCtrl.u8Cur - 1;
-            _SegType = 3;
-        }
-    }
-    else
-        stSegCtrl.BrustStableDownCnt = 0;
 
-    return _SegType;
-	// // 检测是否需要向上切换
-	// if ((stSegCtrl.u8Set == stSegCtrl.u8Cur) &&
-	// 	(stSegCtrl.u8Set < GetWorkCon()->u8MaxSeg) &&
-	// 	(GetSystemRunData()->u16SetBlfI >= GetSystemRunData()->u16BlfIRun_Max - 20) &&
-	// 	(GetSystemRunData()->TmpSet > GetSystemRunData()->TmpOut + 10) &&
-	// 	(FSM_STATE_STABLE == GetFsmState()))
-	// {
-	// 	if (++stSegCtrl.BrustStableUpCnt >= 100)
-	// 	{
-	// 		stSegCtrl.BrustStableUpCnt = 0;
-	// 		stSegCtrl.u8Set++;
-    //         _SegType = 2;
-	// 	}
-	// }
-	// else
-	// 	stSegCtrl.BrustStableUpCnt = 0;
-	// // 检测是否需要向下切换
-	// if ((stSegCtrl.u8Set == stSegCtrl.u8Cur) &&
-	// 	(stSegCtrl.u8Set > 0) &&
-	// 	(GetSystemRunData()->u16SetBlfI <= GetSystemRunData()->u16BlfIRun_Min + 20) &&
-	// 	(GetSystemRunData()->TmpOut > GetSystemRunData()->TmpSet + 10) &&
-	// 	(FSM_STATE_STABLE == GetFsmState()))
-	// {
-	// 	if (++stSegCtrl.BrustStableDownCnt >= 100)
-	// 	{
-	// 		stSegCtrl.BrustStableDownCnt = 0;
-	// 		stSegCtrl.u8Set--;
-    //         _SegType = 3;
-	// 	}
-	// }
-	// else
-	// 	stSegCtrl.BrustStableDownCnt = 0;
-
-    // return _SegType;
+	// 检测是否需要向上切换
+	if ((stSegCtrl.u8Set == stSegCtrl.u8Cur) &&
+		(stSegCtrl.u8Set < GetWorkCon()->u8MaxSeg) &&
+		(GetSystemRunData()->u16SetBlfI >= GetSystemRunData()->u16BlfIRun_Max - 20) &&
+		(GetSystemRunData()->TmpSet > GetSystemRunData()->TmpOut + 10) &&
+		(FSM_STATE_STABLE == GetFsmState()))
+	{
+		if (++stSegCtrl.BrustStableUpCnt >= 100)
+		{
+			stSegCtrl.BrustStableUpCnt = 0;
+			stSegCtrl.u8Set++;
+		}
+	}
+	else
+		stSegCtrl.BrustStableUpCnt = 0;
+	// 检测是否需要向下切换
+	if ((stSegCtrl.u8Set == stSegCtrl.u8Cur) &&
+		(stSegCtrl.u8Set > 0) &&
+		(GetSystemRunData()->u16SetBlfI <= GetSystemRunData()->u16BlfIRun_Min + 20) &&
+		(GetSystemRunData()->TmpOut > GetSystemRunData()->TmpSet + 10) &&
+		(FSM_STATE_STABLE == GetFsmState()))
+	{
+		if (++stSegCtrl.BrustStableDownCnt >= 100)
+		{
+			stSegCtrl.BrustStableDownCnt = 0;
+			stSegCtrl.u8Set--;
+		}
+	}
+	else
+		stSegCtrl.BrustStableDownCnt = 0;
 }
+
 void SwitchSeg(uint8_t _Auto)
 {
 
 	uint8_t _u8temp, _u8SegType;//换挡类型
-	uint16_t _u16SetLoad,_u16temp;
+	uint16_t _u16SetLoad;
 
 	const ST_SEG_LOAD_T *_pstSetInfo = stSegCtrl.astSegLoad;
 	_u16SetLoad = RANGLMT(GetTmpCtrlData()->u16SetLoad,
@@ -178,7 +144,7 @@ void SwitchSeg(uint8_t _Auto)
         if (_Auto)
         {
             _u8SegType = 0;
-            if ((_u16SetLoad > _pstSetInfo[stSegCtrl.u8Cur].u16MaxLoad) || (_u16SetLoad < _pstSetInfo[stSegCtrl.u8Cur].u16MinLoad) || (GetFirstSwSeg()))
+            if (((_u16SetLoad > _pstSetInfo[stSegCtrl.u8Cur].u16MaxLoad) || (_u16SetLoad < _pstSetInfo[stSegCtrl.u8Cur].u16MinLoad) || (GetFirstSwSeg())))
             {
                 _u8temp = GetWorkCon()->u8MaxSeg;
                 while (0 < _u8temp)
@@ -295,7 +261,7 @@ void SwitchSeg(uint8_t _Auto)
             if (0 == _u8temp)
             {
                 stSegCtrl.u8ChgStep = 1;
-                stSegCtrl.u8ValveStay_100ms = 15; // 需要配置传火时间
+                stSegCtrl.u8ValveStay_100ms = 10; // 需要配置传火时间
             }
             else
             {
@@ -306,7 +272,7 @@ void SwitchSeg(uint8_t _Auto)
                     // 需要打开新的分段，需要一定的负荷进行传火，因此预留一定时间（部分机器存在二次压小情况下传火困难）
                     if ((1 == ((GetWorkCon()->aunSubSegSet[stSegCtrl.u8Set].BYTE >> _u8temp) & 0x01)) && (0 == ((GetWorkCon()->aunSubSegSet[stSegCtrl.u8Cur].BYTE >> _u8temp) & 0x01)))
                     {
-                        stSegCtrl.u8ValveStay_100ms = 5; // 需要配置传火时间
+                        stSegCtrl.u8ValveStay_100ms = 20; // 需要配置传火时间
                         break;
                     }
                 }
@@ -366,7 +332,7 @@ void ClrSubChgCnt(void)
 	ResetHeatStable();
 }
 /**********************************************
- *手动换挡
+ *
  *
  **********************************************/
 void SetManualSeg(uint8_t _u8set)
