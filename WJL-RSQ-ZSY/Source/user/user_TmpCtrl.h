@@ -19,10 +19,12 @@ typedef struct
 	uint16_t u16CalcLoad; // 计算的理论负荷
 	uint16_t u16SetLoad;  // 设置负荷
     uint16_t u16BlfIStart;
+    uint16_t u16BurstLimit_100ms;
 	//uint16_t u16OutLoad;
 	uint8_t u8StartBurst_100ms;
 	uint8_t u8BurstStable_100ms;
-    uint8_t u8BurstLimit_100ms;
+    
+    uint8_t u8AddGasDelay_100ms;
 	uint8_t u8PidPause_100ms;
 	uint8_t u8PidNoRun_100ms;
 	uint16_t u16CurvePercent;
@@ -35,7 +37,7 @@ typedef struct
 } ST_TMPCTRL_T;
 extern void TmpCtrlInit(void);
 extern void TmpCtrlProcess(void);
-extern const ST_TMPCTRL_T *GetTmpCtrlData(void);
+extern ST_TMPCTRL_T *GetTmpCtrlData(void);
 extern void Reset_Pid(void);
 extern uint16_t ConvertDbgToCtrl_Blf(uint8_t _u8dbgset);
 extern uint16_t GetBlfIFromPercent(uint8_t _u8percent);
