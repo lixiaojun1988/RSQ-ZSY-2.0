@@ -95,7 +95,7 @@ void FsmPreFanDoingHandler(void) // 10MS
 	if (GetSystemRunData()->u16E6Check_10ms >= 100)
 	{
 		GetSystemRunData()->u8ErrorCode = EN_ERR_E6;
-		SetFsmState(FSM_STATE_ERROR);
+		SetFsmState(FSM_STATE_ENDCLEAN);
 	}
 
     //E3故障
