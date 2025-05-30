@@ -77,7 +77,7 @@ static const ST_DBG_INFO_T astDbgInfo[] =
 	uint8_t u8Ee;
     uint8_t u8Pu;
 	uint8_t u8Null;
-const ST_DBG_FLH_T stDbgFlhDef = {12, 0x7B, 0x93, 0xB3, 0x68, 0x1A, 88, 52, 14, 17, 1, 0, 1, 
+const ST_DBG_FLH_T stDbgFlhDef = {12, 0x34, 0x3F, 0x82, 0xA4, 0x51, 78, 59, 14, 17, 1, 0, 1, 
 									//LS,NF,DE,NH,Ee,Pu
 									0, 0, 0, 0, 0, 0xFF};
 
@@ -86,8 +86,8 @@ const DBG_MACH_DEF astDebugMachDef[] =
 	{
 		{0x7A, 0x93, 0xB4, 0x5C, 0x1A, 85, 50}, // 4-13L12T
 		{0x7A, 0x93, 0xB4, 0x5C, 0x1A, 85, 50}, // 4-13L12T
-		{0x7B, 0x93, 0xB3, 0x68, 0x1A, 88, 52}, // 12-16L12T
-		{0x7B, 0x93, 0xB3, 0x68, 0x1A, 88, 52}, // 12-16L12T
+		{0x34, 0x3F, 0x82, 0xA4, 0x51, 78, 59}, // 12-16L12T
+		{0x34, 0x3F, 0x82, 0xA4, 0x51, 78, 59}, // 12-16L12T
 		{0x82, 0x8E, 0xC0, 0x68, 0x1A, 88, 52}, // 21-20L12T
 		{0x82, 0x8E, 0xC0, 0x68, 0x1A, 88, 52}	// 21-20L12T
 };
@@ -120,13 +120,16 @@ void GetCommDebugData(ST_COMM_SET_T *pGetCommRevData)
 		u8LastDebugIndex = pGetCommRevData->u8DebugIndex;
 		if ((0xAA == pGetCommRevData->u8DebugAct) && (0 != astDbgInfo[pGetCommRevData->u8DebugIndex].stAddInfo.BIT.u8AdjSet))
 		{
-			*(astDbgInfo[pGetCommRevData->u8DebugIndex].pu8Data) = pGetCommRevData->u8DebugData;
-			// 写入数值为FA？
-			if (((EN_CODE_F == astDbgInfo[pGetCommRevData->u8DebugIndex].u8CodeH) && (EN_CODE_A == astDbgInfo[pGetCommRevData->u8DebugIndex].u8CodeL)) || ((EN_CODE_n == astDbgInfo[pGetCommRevData->u8DebugIndex].u8CodeH) && (EN_CODE_5 == astDbgInfo[pGetCommRevData->u8DebugIndex].u8CodeL)))
-			{
-				UpdateMaInfo();
-				memcpy(&(GetFlashDataSector0()->debugData.u8Pl), (astDebugMachDef + GetWorkCon()->u8MachineId), sizeof(DBG_MACH_DEF));
-			}
+            if (*(astDbgInfo[pGetCommRevData->u8DebugIndex].pu8Data) != pGetCommRevData->u8DebugData)
+            {
+                *(astDbgInfo[pGetCommRevData->u8DebugIndex].pu8Data) = pGetCommRevData->u8DebugData;
+                // 写入数值为FA？
+                if (((EN_CODE_F == astDbgInfo[pGetCommRevData->u8DebugIndex].u8CodeH) && (EN_CODE_A == astDbgInfo[pGetCommRevData->u8DebugIndex].u8CodeL)) || ((EN_CODE_n == astDbgInfo[pGetCommRevData->u8DebugIndex].u8CodeH) && (EN_CODE_5 == astDbgInfo[pGetCommRevData->u8DebugIndex].u8CodeL)))
+                {
+                    UpdateMaInfo();
+                    memcpy(&(GetFlashDataSector0()->debugData.u8Pl), (astDebugMachDef + GetWorkCon()->u8MachineId), sizeof(DBG_MACH_DEF));
+                }
+            }
 		}
 		GetSystemRunData()->sysSta.BIT.bMainSta = EN_MAIN_STATE_DEBUG;
 	}
