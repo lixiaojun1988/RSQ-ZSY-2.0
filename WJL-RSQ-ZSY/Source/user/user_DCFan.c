@@ -306,9 +306,9 @@ void DCFanProcess(void)
     //处于换挡的时候
     if (GetSegCtrl()->u8ChgStep)
 	{
-		_u32temp = GetSystemRunData()->u16SetDCFanI;
-		_u32temp = _u32temp * 80 / 100;
-		Drv_SetDCFanPWM((uint16_t)_u32temp);
+		// _u32temp = GetSystemRunData()->u16SetDCFanI;
+		// _u32temp = _u32temp * 80 / 100;
+		Drv_SetDCFanPWM(ConvertDbgToCtrl_DCFan(GetFlashDataSector0()->debugData.u8Fl));
 	}
 	else
 		Drv_SetDCFanPWM(GetSystemRunData()->u16SetDCFanI);
